@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CloudOS</title>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0f3d3e"><link rel="icon" href="icon-192.png">
+<style>
+:root{--win:#fbfaf7;--tx:#1d2320;--mut:#66706b;--bar:#e9ece6;--bd:#d3d9d1;--ac:#1f7a5c;--acx:#fff;--task:#14201bcc;--in:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--wp:linear-gradient(135deg,#0f3d3e,#2a6f5a 55%,#d9a441)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--win:#1a201d;--tx:#e6ece7;--mut:#93a09a;--bar:#252d29;--bd:#34403a;--in:#121815}}
+:root[data-theme="dark"]{--win:#1a201d;--tx:#e6ece7;--mut:#93a09a;--bar:#252d29;--bd:#34403a;--in:#121815}
+html{height:100%}
+body{margin:0;height:100%;background:#0f3d3e;font:14px/1.4 "Segoe UI",system-ui,-apple-system,sans-serif;color:var(--tx);overflow:hidden}
+#desk{position:relative;height:100%;background:var(--wp);overflow:hidden}
+#icons{display:grid;grid-template-columns:repeat(auto-fill,84px);gap:6px;padding:14px;position:absolute;inset:0 0 48px 0;align-content:start}
+.ic{background:none;border:0;color:#fff;text-align:center;padding:8px 2px;border-radius:10px;cursor:pointer;font:inherit;text-shadow:0 1px 3px #0007}
+.ic:hover,.ic:focus-visible{background:#ffffff26;outline:none}.ic b{display:block;font-size:30px;font-weight:400}
+.win{position:absolute;display:flex;flex-direction:column;background:var(--win);border:1px solid var(--bd);border-radius:10px;box-shadow:0 14px 40px #0006;overflow:hidden;min-width:260px;min-height:160px}
+.win[hidden]{display:none}.win.max{left:0!important;top:0!important;width:100%!important;height:calc(100% - 48px)!important;border-radius:0}
+.tb{display:flex;align-items:center;justify-content:space-between;background:var(--bar);padding:6px 8px 6px 12px;cursor:move;user-select:none;touch-action:none;font-weight:600}
+.tb i{display:flex;gap:4px}.tb button{width:26px;height:26px;border:0;border-radius:6px;background:none;color:var(--tx);cursor:pointer;font-size:13px}.tb button:hover{background:var(--bd)}.tb button[data-a=x]:hover{background:#c8443a;color:#fff}
+.bd{flex:1;min-height:0;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:auto}
+input,select,textarea,button.b{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:6px;padding:6px 9px}
+button.b{background:var(--ac);color:var(--acx);border-color:var(--ac);cursor:pointer}button.b.g{background:none;color:var(--tx);border-color:var(--bd)}
+textarea{flex:1;resize:none;font:13px/1.5 ui-monospace,Consolas,monospace;min-height:120px}
+input{min-width:0}.row{display:flex;gap:6px;align-items:center}.row input{flex:1}
+.it{padding:5px 6px;border-radius:6px}.it:hover{background:var(--bar)}.it span{flex:1;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
+iframe{flex:1;border:1px solid var(--bd);border-radius:6px;background:#fff;min-height:120px}
+.term{background:#0d1210;color:#b8f2cf;font:13px ui-monospace,Consolas,monospace}.term pre{flex:1;margin:0;overflow:auto;white-space:pre-wrap}.term input{background:#0d1210;color:#b8f2cf;border-color:#2a3a32}
+.calc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.calc input{grid-column:1/-1;text-align:right;font-size:22px}.calc button{padding:12px 0;font-size:16px}
+.sw{width:44px;height:30px;border-radius:6px;border:2px solid var(--bd);cursor:pointer}
+#bar{position:absolute;left:0;right:0;bottom:0;height:48px;background:var(--task);backdrop-filter:blur(10px);display:flex;align-items:center;gap:6px;padding:0 10px;color:#fff;z-index:99999}
+#tasks{flex:1;display:flex;gap:6px;overflow-x:auto}#tasks button{background:#ffffff1f;border:0;color:#fff;border-radius:6px;padding:6px 10px;font:inherit;white-space:nowrap;cursor:pointer}#tasks button.on{background:#ffffff4d}
+@media (max-width:700px){.win{left:0!important;top:0!important;width:100%!important;height:calc(100% - 48px)!important;border-radius:0}}
+</style></head><body>
+<div id="desk"><div id="icons"></div><div id="bar"><b>☁ CloudOS</b><div id="tasks"></div><span id="cl" style="opacity:.7;font-size:12px">local only</span><span id="clock"></span></div></div>
+<script>
+const $=(s,e=document)=>e.querySelector(s);
+const el=(t,p={},...c)=>{const e=Object.assign(document.createElement(t),p);e.append(...c);return e};
+const st={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let fs=st.get('fs',{'welcome.txt':'Welcome to CloudOS!\nOpen Files, Editor, Terminal or Web Host from the desktop.','index.html':'<h1 style="font-family:sans-serif">Hello from my CloudOS site</h1>\n<p style="font-family:sans-serif">Edit me in the Editor, then reload in Web Host.</p>'});
+let cfg=st.get('cfg',{wp:0,theme:'auto',user:'guest'}),bg=st.get('bg',null);
+const WP=['linear-gradient(135deg,#0f3d3e,#2a6f5a 55%,#d9a441)','linear-gradient(135deg,#1b1f3b,#5b3a8c 60%,#e07a5f)','linear-gradient(135deg,#222,#556 50%,#8ab)'];
+let col=null,synced={},up={};
+const hex=s=>[...new TextEncoder().encode(s)].map(b=>b.toString(16).padStart(2,'0')).join('');
+const setCloud=v=>$('#cl').textContent=v?'☁ synced':'local only';
+const saveFs=()=>{st.set('fs',fs);document.dispatchEvent(new Event('fs'));if(!col)return;
+ for(const k in fs)if(synced[k]!==fs[k]){synced[k]=fs[k];col.doc('f_'+hex(k)).set({name:k,text:fs[k]}).catch(()=>{})}
+ for(const k in synced)if(!(k in fs)){delete synced[k];col.doc('f_'+hex(k)).delete().catch(()=>{})}};
+const setBg=async f=>{const u=URL.createObjectURL(f),im=new Image();im.src=u;await im.decode();const k=Math.min(1,1600/Math.max(im.width,im.height)),c=el('canvas',{width:Math.round(im.width*k),height:Math.round(im.height*k)});
+ c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);const d=c.toDataURL('image/jpeg',.8);
+ try{localStorage.setItem('bg',JSON.stringify(d))}catch(e){return false}bg=d;applyCfg(false);return true};
+const applyCfg=(push=true)=>{const r=document.documentElement;cfg.theme==='auto'?r.removeAttribute('data-theme'):r.setAttribute('data-theme',cfg.theme);r.style.setProperty('--wp',bg?`url("${bg}") center/cover no-repeat`:WP[cfg.wp]);st.set('cfg',cfg);if(push&&col)col.doc('cfg').set(cfg).catch(()=>{})};
+let z=10,n=0;const wins=[];
+function focus(r){r.w.hidden=false;r.w.style.zIndex=++z;wins.forEach(x=>x.btn.classList.toggle('on',x===r))}
+function open(app,arg){
+ const A=apps[app],w=el('div',{className:'win'}),o=(n++%6)*26;
+ w.style.cssText=`left:${70+o}px;top:${36+o}px;width:${A.w||480}px;height:${A.h||360}px`;
+ w.innerHTML='<div class="tb"><span></span><i><button data-a="m" title="Minimize">–</button><button data-a="M" title="Maximize">▢</button><button data-a="x" title="Close">✕</button></i></div><div class="bd"></div>';
+ $('.tb span',w).textContent=A.i+' '+A.n;$('#desk').append(w);
+ const r={w,btn:el('button',{textContent:A.i+' '+A.n})};wins.push(r);$('#tasks').append(r.btn);
+ const close=()=>{r.off&&r.off();w.remove();r.btn.remove();wins.splice(wins.indexOf(r),1)};
+ r.btn.onclick=()=>w.hidden||r.btn.classList.contains('on')?(w.hidden=!w.hidden,r.btn.classList.remove('on')):focus(r);
+ w.onpointerdown=()=>focus(r);
+ w.onclick=e=>{const a=e.target.dataset&&e.target.dataset.a;if(a==='x')close();if(a==='m'){w.hidden=true;r.btn.classList.remove('on')}if(a==='M')w.classList.toggle('max')};
+ $('.tb',w).onpointerdown=e=>{if(e.target.closest('button')||w.classList.contains('max'))return;const dx=e.clientX-w.offsetLeft,dy=e.clientY-w.offsetTop;
+  const mv=ev=>{w.style.left=Math.max(0,ev.clientX-dx)+'px';w.style.top=Math.max(0,ev.clientY-dy)+'px'};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up)};addEventListener('pointermove',mv);addEventListener('pointerup',up)};
+ A.init($('.bd',w),arg,r);focus(r);
+}
+const onFs=(r,fn)=>{document.addEventListener('fs',fn);r.off=()=>document.removeEventListener('fs',fn)};
+const apps={
+files:{n:'Files',i:'📁',w:420,h:380,init(b,_,r){
+ const inp=el('input',{placeholder:'new-file.txt'}),add=el('button',{className:'b',textContent:'New file'}),list=el('div'),upl=el('input',{type:'file'}),msg=el('small',{style:'color:var(--mut)'});
+ const draw=()=>{const k=Object.keys(fs).sort();list.replaceChildren(...(k.length?k:[]).map(f=>{
+  const row=el('div',{className:'row it'},el('span',{textContent:'📄 '+f,onclick:()=>open('editor',f)}));
+  if(/\.html?$/.test(f))row.append(el('button',{className:'b g',textContent:'Host',onclick:()=>open('host',f)}));
+  row.append(el('button',{className:'b g',textContent:'Delete',onclick:()=>{delete fs[f];saveFs()}}));return row}));
+  Object.keys(up).forEach(n=>list.append(el('div',{className:'row it'},el('span',{textContent:'🖼 '+n,onclick:()=>window.open(up[n].url,'_blank')}),el('button',{className:'b g',textContent:'Delete',onclick:async()=>{try{const A=await claude.use('assets');await A.delete(up[n].id);await col.doc('a_'+hex(n)).delete();delete up[n];draw()}catch(e){msg.textContent='Delete failed'}}}))));if(!k.length&&!Object.keys(up).length)list.append(el('p',{textContent:'No files yet. Type a name above and choose New file.'}))};
+ add.onclick=()=>{const f=inp.value.trim();if(f){fs[f]??='';saveFs();inp.value='';open('editor',f)}};
+ b.append(el('div',{className:'row'},inp,add),el('div',{className:'row'},upl),msg,list);
+ upl.onchange=async()=>{const f=upl.files[0];if(!f)return;try{const A=window.claude&&await claude.use('assets');if(!A||!col){msg.textContent='Uploads need a signed-in cloud session.';return}
+  const x=await A.upload(f),v={name:f.name,id:x.id,url:x.url,size:x.sizeBytes};up[f.name]=v;await col.doc('a_'+hex(f.name)).set(v);msg.textContent='Uploaded '+f.name;draw()}catch(e){msg.textContent='Upload failed: '+(e.message||e.code||'error')}};
+ draw();onFs(r,draw)}},
+editor:{n:'Editor',i:'📝',w:500,h:400,init(b,f){
+ const name=el('input',{value:f||'untitled.txt'}),ta=el('textarea',{value:fs[f]||'',spellcheck:false}),msg=el('span',{style:'color:var(--mut)'});
+ const sv=()=>{const k=name.value.trim();if(!k)return;fs[k]=ta.value;saveFs();msg.textContent='Saved '+k};
+ b.append(el('div',{className:'row'},name,el('button',{className:'b',textContent:'Save',onclick:sv}),el('button',{className:'b g',textContent:'Host',onclick:()=>{sv();open('host',name.value.trim())}})),ta,msg);
+ ta.onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();sv()}}}},
+host:{n:'Web Host',i:'🌐',w:560,h:420,init(b,f,r){
+ const sel=el('select'),fr=el('iframe',{sandbox:'allow-scripts allow-forms'}),go=el('button',{className:'b',textContent:'Reload'});
+ const fill=()=>{const cur=sel.value||f;sel.replaceChildren(...Object.keys(fs).filter(k=>/\.html?$/.test(k)).map(k=>el('option',{value:k,textContent:k,selected:k===cur})));fr.srcdoc=fs[sel.value]??'<p style="font:14px sans-serif;padding:12px">No .html files yet. Create one in Files.</p>'};
+ sel.onchange=go.onclick=fill;b.append(el('div',{className:'row'},sel,go),fr);fill();onFs(r,fill)}},
+terminal:{n:'Terminal',i:'⌨',w:520,h:340,init(b){
+ b.classList.add('term');const out=el('pre'),inp=el('input',{placeholder:'type help'});b.append(out,inp);
+ const p=t=>{out.textContent+=t+'\n';out.scrollTop=out.scrollHeight};p('CloudOS terminal. Type help.');
+ inp.onkeydown=e=>{if(e.key!=='Enter')return;const l=inp.value.trim();inp.value='';p(cfg.user+'@cloud:~$ '+l);const[c,...a]=l.split(/\s+/),rest=a.join(' ');
+  if(c==='help')p('ls · cat f · touch f · rm f · echo text > f · date · whoami · open files|editor|host|browser|calc|settings · clear');
+  else if(c==='ls')p(Object.keys(fs).join('  ')||'(empty)');
+  else if(c==='cat')p(fs[a[0]]??'no such file');
+  else if(c==='touch'&&a[0]){fs[a[0]]??='';saveFs()}
+  else if(c==='rm')a[0] in fs?(delete fs[a[0]],saveFs()):p('no such file');
+  else if(c==='echo'){const i=rest.lastIndexOf(' > ');if(i>=0){fs[rest.slice(i+3).trim()]=rest.slice(0,i);saveFs()}else p(rest)}
+  else if(c==='date')p(new Date().toString());
+  else if(c==='whoami')p(cfg.user);
+  else if(c==='clear')out.textContent='';
+  else if(c==='open'){const m={files:'files',editor:'editor',host:'host',browser:'browser',calc:'calc',settings:'settings'}[a[0]];m?open(m):p('unknown app')}
+  else if(c)p(c+': command not found')}}},
+browser:{n:'Browser',i:'🧭',w:600,h:420,init(b){
+ const u=el('input',{placeholder:'https://example.org'}),fr=el('iframe',{sandbox:'allow-scripts allow-forms allow-same-origin',srcdoc:'<p style="font:14px sans-serif;padding:12px;color:#444">Enter an address above. Many sites refuse to load inside another page; those will show blank.</p>'});
+ const go=()=>{let v=u.value.trim();if(v){if(!/^https?:\/\//.test(v))v='https://'+v;fr.removeAttribute('srcdoc');fr.src=v}};
+ u.onkeydown=e=>e.key==='Enter'&&go();b.append(el('div',{className:'row'},u,el('button',{className:'b',textContent:'Go',onclick:go})),fr)}},
+calc:{n:'Calculator',i:'🧮',w:260,h:380,init(b){
+ const d=el('input',{readOnly:true,value:''}),g=el('div',{className:'calc'},d);
+ '789/456*123-0.=+'.split('').forEach(k=>g.append(el('button',{className:'b'+(/\d|\./.test(k)?' g':''),textContent:k,onclick:()=>{
+  if(k==='='){try{d.value=/^[\d+\-*/.() ]+$/.test(d.value)?String(Function('return '+d.value)()):'';}catch(e){d.value='Error'}}else d.value+=k}})));
+ g.append(el('button',{className:'b g',textContent:'C',onclick:()=>d.value=''}));b.append(g)}},
+settings:{n:'Settings',i:'⚙',w:380,h:440,init(b){
+ const nm=el('input',{value:cfg.user}),th=el('select',{},...['auto','light','dark'].map(t=>el('option',{value:t,textContent:t,selected:t===cfg.theme})));
+ const bgIn=el('input',{type:'file',accept:'image/*'}),bgMsg=el('small',{style:'color:var(--mut)',textContent:'Pick a picture from your phone. It stays on this device.'});
+ bgIn.onchange=async()=>{const f=bgIn.files[0];if(!f)return;try{bgMsg.textContent=(await setBg(f))?'Background set':'Image too large to save'}catch(e){bgMsg.textContent='Could not read that image'}};
+ nm.onchange=()=>{cfg.user=nm.value.trim()||'guest';applyCfg()};th.onchange=()=>{cfg.theme=th.value;applyCfg()};
+ b.append(el('label',{textContent:'User name'}),nm,el('label',{textContent:'Theme'}),th,el('label',{textContent:'Background image'}),bgIn,bgMsg,el('label',{textContent:'Or pick a color wallpaper'}),
+  el('div',{className:'row'},...WP.map((g,i)=>el('div',{className:'sw',style:'background:'+g,onclick:()=>{cfg.wp=i;bg=null;try{localStorage.removeItem('bg')}catch(e){}applyCfg()}}))),
+  el('p',{style:'color:var(--mut)',textContent:'When signed in, files and settings sync to your account on any device. Otherwise they stay in this browser.'}),
+  el('button',{className:'b g',textContent:'Reset CloudOS (deletes all files)',onclick:()=>{try{localStorage.clear()}catch(e){}fs={};cfg={wp:0,theme:'auto',user:'guest'};saveFs();applyCfg();setTimeout(()=>location.reload(),800)}}))}}
+};
+Object.entries(apps).forEach(([k,A])=>$('#icons').append(el('button',{className:'ic',onclick:()=>open(k)},el('b',{textContent:A.i}),A.n)));
+const tick=()=>$('#clock').textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});tick();setInterval(tick,20000);
+applyCfg();
+(async()=>{try{
+ if(!window.claude)return;const[db,user]=await Promise.all([claude.use('db'),claude.use('user')]);if(!db||!user)return;
+ const id=await user.id();if(!id)return;const c=db.collection('data/users/'+id);let first=true;
+ c.onSnapshot(s=>{const D=s.docs.filter(d=>d.exists);col=c;
+  if(first&&!D.length){first=false;synced={};saveFs();applyCfg();setCloud(true);return}
+  first=false;fs={};up={};D.forEach(d=>{const v=d.data();if(d.id==='cfg')cfg={...cfg,...v};else if(d.id[0]==='f')fs[v.name]=v.text;else if(d.id[0]==='a')up[v.name]=v});
+  synced={...fs};st.set('fs',fs);applyCfg(false);document.dispatchEvent(new Event('fs'));setCloud(true)},()=>{col=null;setCloud(false)});
+}catch(e){}})();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
